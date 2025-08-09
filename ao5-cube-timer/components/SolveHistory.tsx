@@ -47,20 +47,20 @@ export default function SolveHistory({ solves, onDeleteSolve, onTogglePenalty }:
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4">
+      <div className="w-full max-w-4xl mx-auto p-4">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Solve History ({solves.length})
       </h2>
       
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
+      <div className="bg-gray-50 dark:bg-gray-900 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-800">
         <div className="max-h-96 overflow-y-auto">
           {solves.slice().reverse().map((solve, index) => (
             <div
               key={solve.id}
-              className="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+              className="border-b border-gray-200 dark:border-gray-800 last:border-b-0 hover:bg-gray-100/60 dark:hover:bg-gray-800/40 transition-colors"
             >
               <div 
-                className="flex items-center justify-between p-4 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                className="flex items-center justify-between p-4 cursor-pointer"
                 onClick={() => setExpandedSolve(expandedSolve === solve.id ? null : solve.id)}
               >
                 <div className="flex items-center gap-4">

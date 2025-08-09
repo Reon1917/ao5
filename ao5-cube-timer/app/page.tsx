@@ -7,8 +7,9 @@ import Statistics from '@/components/Statistics';
 import ThemeToggle from '@/components/ThemeToggle';
 import SolveHistory from '@/components/SolveHistory';
 import SessionSelector from '@/components/SessionSelector';
+import Settings from '@/components/Settings';
 import { Solve, Session, TimerState, CubeType } from '@/components/types';
-import { generateId, calculateStatistics, saveToLocalStorage, loadFromLocalStorage } from '@/components/utils';
+import { generateId, calculateStatistics, saveToLocalStorage, loadFromLocalStorage, formatTime } from '@/components/utils';
 
 export default function Home() {
   const [timerState, setTimerState] = useState<TimerState>('idle');
@@ -16,6 +17,12 @@ export default function Home() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string>('');
   const [isInspectionEnabled, setIsInspectionEnabled] = useState(true);
+  const [inspectionTime, setInspectionTime] = useState(15);
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [scrambleRefreshKey, setScrambleRefreshKey] = useState(0);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [isHapticsEnabled, setIsHapticsEnabled] = useState(true);
+  const [armDelayMs, setArmDelayMs] = useState(300);
 
   // Initialize sessions
   useEffect(() => {
@@ -66,6 +73,11 @@ export default function Home() {
 
     setSessions(updatedSessions);
     saveToLocalStorage('cubing-sessions', updatedSessions);
+    
+    // Generate new scramble after solve
+    setTimeout(() => {
+      setScrambleRefreshKey((k) => k + 1);
+    }, 50);
   }, [currentSession, currentScramble, sessions]);
 
   const handleDeleteSolve = useCallback((solveId: string) => {
@@ -149,67 +161,118 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-4">
-          <SessionSelector
-            sessions={sessions}
-            currentSession={currentSession}
-            onSessionChange={handleSessionChange}
-            onCreateSession={handleCreateSession}
-          />
-        </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors">
+      {/* Minimal Layout */}
+      <div className="relative min-h-screen flex flex-col">
         
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <input
-              type="checkbox"
-              checked={isInspectionEnabled}
-              onChange={(e) => setIsInspectionEnabled(e.target.checked)}
-              className="rounded"
+        {/* Top Controls - Minimal */}
+        <div className="absolute top-4 left-4 right-4 flex justify-between items-start z-10">
+          <div className="flex items-center gap-3">
+            <SessionSelector
+              sessions={sessions}
+              currentSession={currentSession}
+              onSessionChange={handleSessionChange}
+              onCreateSession={handleCreateSession}
             />
-            15s Inspection
-          </label>
-          <ThemeToggle />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Settings
+              isInspectionEnabled={isInspectionEnabled}
+              onInspectionToggle={setIsInspectionEnabled}
+              inspectionTime={inspectionTime}
+              onInspectionTimeChange={setInspectionTime}
+              cubeType={currentSession.cubeType}
+              onCubeTypeChange={(type) => {
+                const updatedSessions = sessions.map(session => {
+                  if (session.id === currentSession.id) {
+                    return { ...session, cubeType: type };
+                  }
+                  return session;
+                });
+                setSessions(updatedSessions);
+                saveToLocalStorage('cubing-sessions', updatedSessions);
+              }}
+              isZenMode={isZenMode}
+              onZenModeToggle={setIsZenMode}
+              isSoundEnabled={isSoundEnabled}
+              onSoundToggle={setIsSoundEnabled}
+              isHapticsEnabled={isHapticsEnabled}
+              onHapticsToggle={setIsHapticsEnabled}
+              armDelayMs={armDelayMs}
+              onArmDelayChange={setArmDelayMs}
+            />
+            <ThemeToggle />
+          </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 pb-8">
-        {/* Scramble */}
-        <div className="mb-8">
-          <ScrambleDisplay
-            cubeType={currentSession.cubeType}
-            onScrambleChange={setCurrentScramble}
-          />
+        {/* Scramble - Top Center */}
+        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-full max-w-4xl px-4">
+          <div className="text-center">
+            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
+              {currentSession.cubeType}
+            </div>
+            <div className="text-base font-mono text-gray-800 dark:text-gray-200 leading-relaxed">
+              {currentScramble || 'Loading scramble...'}
+            </div>
+          </div>
         </div>
 
-        {/* Timer */}
-        <div className="mb-8">
+        {/* Timer - Center Stage */}
+        <div className="flex-1 flex items-center justify-center px-4">
           <Timer
             onSolveComplete={handleSolveComplete}
             isInspectionEnabled={isInspectionEnabled}
-            inspectionTime={15}
+            inspectionTime={inspectionTime}
             state={timerState}
             onStateChange={setTimerState}
           />
         </div>
 
-        {/* Statistics */}
-        <div className="mb-8">
-          <Statistics statistics={statistics} />
+        {/* Side Stats - Minimal */}
+        <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+          <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <div className="font-medium text-gray-600 dark:text-gray-300">AO5</div>
+            <div className="font-mono">{statistics.ao5 ? formatTime(statistics.ao5) : '-'}</div>
+            <div className="font-medium text-gray-600 dark:text-gray-300 mt-3">AO12</div>
+            <div className="font-mono">{statistics.ao12 ? formatTime(statistics.ao12) : '-'}</div>
+            <div className="font-medium text-gray-600 dark:text-gray-300 mt-3">Best</div>
+            <div className="font-mono">{statistics.best ? formatTime(statistics.best) : '-'}</div>
+          </div>
         </div>
 
-        {/* Solve History */}
-        <div>
-          <SolveHistory
-            solves={currentSession.solves}
-            onDeleteSolve={handleDeleteSolve}
-            onTogglePenalty={handleTogglePenalty}
+        {/* Right Side - Session Info */}
+        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+          <div className="text-xs text-gray-500 dark:text-gray-400 text-right space-y-1">
+            <div className="font-medium text-gray-600 dark:text-gray-300">Solves</div>
+            <div className="font-mono">{statistics.totalSolves}</div>
+            <div className="font-medium text-gray-600 dark:text-gray-300 mt-3">Mean</div>
+            <div className="font-mono">{statistics.mean ? formatTime(statistics.mean) : '-'}</div>
+            <div className="font-medium text-gray-600 dark:text-gray-300 mt-3">Worst</div>
+            <div className="font-mono">{statistics.worst ? formatTime(statistics.worst) : '-'}</div>
+          </div>
+        </div>
+
+        {/* Bottom - Recent Solves (Minimal) */}
+        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+          <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-4">
+            {currentSession.solves.slice(-5).reverse().map((solve, index) => (
+              <div key={solve.id} className="font-mono">
+                {formatTime(solve.time, solve.penalty)}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Hidden Scramble Generator */}
+        <div className="hidden">
+          <ScrambleDisplay
+            cubeType={currentSession.cubeType}
+            onScrambleChange={setCurrentScramble}
+            refreshKey={scrambleRefreshKey}
           />
         </div>
-      </main>
+      </div>
     </div>
   );
 }

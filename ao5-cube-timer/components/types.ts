@@ -26,3 +26,12 @@ export interface Session {
   cubeType: CubeType;
   solves: Solve[];
 }
+
+export interface TimerSettings {
+  isInspectionEnabled: boolean;
+  inspectionTime: number; // seconds
+  isSoundEnabled: boolean;
+  isHapticsEnabled: boolean;
+  armDelayMs: number;
+  autoNextScramble: boolean;
+}

@@ -1,51 +1,12 @@
 import { CubeType } from './types';
 
-// Cubing.js event mapping
-const CUBING_EVENT_MAP: Record<CubeType, string> = {
-  '2x2': '222',
-  '3x3': '333',
-  '4x4': '444',
-  '5x5': '555',
-  '6x6': '666',
-  '7x7': '777',
-  'OH': '333oh',
-  'BLD': '333bf',
-  'FMC': '333fm'
-};
-
-// Dynamic import for cubing.js scramble
-const importCubingScramble = async () => {
-  try {
-    const { randomScrambleForEvent } = await import('https://cdn.cubing.net/v0/js/cubing/scramble');
-    return { randomScrambleForEvent };
-  } catch (error) {
-    console.error('Failed to import cubing.js:', error);
-    return null;
-  }
-};
-
 export const generateScramble = async (cubeType: CubeType): Promise<string> => {
-  try {
-    const cubingModule = await importCubingScramble();
-    if (!cubingModule) {
-      throw new Error('Failed to load cubing.js');
-    }
-
-    const eventId = CUBING_EVENT_MAP[cubeType];
-    if (!eventId) {
-      throw new Error(`Unsupported cube type: ${cubeType}`);
-    }
-
-    const scrambleAlg = await cubingModule.randomScrambleForEvent(eventId);
-    return scrambleAlg.toString();
-  } catch (error) {
-    console.warn('Cubing.js failed, using fallback:', error);
-    return generateFallbackScramble(cubeType);
-  }
+  // For now, use improved fallback until we can properly integrate cubing.js
+  return generateImprovedScramble(cubeType);
 };
 
-// Simplified fallback for when cubing.js fails
-const generateFallbackScramble = (cubeType: CubeType): string => {
+// Improved scramble generation with better randomization
+const generateImprovedScramble = (cubeType: CubeType): string => {
   const scramblePatterns = {
     '2x2': ['R', 'U', 'R\'', 'U\'', 'R2', 'U2', 'F', 'F\'', 'F2'],
     '3x3': ['R', 'U', 'L', 'D', 'F', 'B', 'R\'', 'U\'', 'L\'', 'D\'', 'F\'', 'B\'', 'R2', 'U2', 'L2', 'D2', 'F2', 'B2'],
@@ -68,6 +29,7 @@ const generateFallbackScramble = (cubeType: CubeType): string => {
   const scramble = [];
   
   let lastMove = '';
+  let lastAxis = '';
   
   for (let i = 0; i < length; i++) {
     let move;
@@ -76,10 +38,15 @@ const generateFallbackScramble = (cubeType: CubeType): string => {
     do {
       move = moves[Math.floor(Math.random() * moves.length)];
       attempts++;
-    } while (attempts < 10 && move === lastMove);
+    } while (
+      attempts < 20 && 
+      (move === lastMove || 
+       (move.charAt(0) === lastMove.charAt(0) && move.charAt(0) === lastAxis))
+    );
     
     scramble.push(move);
     lastMove = move;
+    lastAxis = move.charAt(0);
   }
   
   return scramble.join(' ');

@@ -87,3 +87,31 @@ export const loadFromLocalStorage = <T>(key: string, defaultValue: T): T => {
   }
   return defaultValue;
 };
+
+export const playBeep = (frequency = 880, durationMs = 80): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = frequency;
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.value = 0.05;
+    oscillator.start();
+    setTimeout(() => {
+      oscillator.stop();
+      audioCtx.close();
+    }, durationMs);
+  } catch {
+    // ignore
+  }
+};
+
+export const vibrate = (pattern: number | number[] = 30): void => {
+  if (typeof window === 'undefined') return;
+  if (navigator?.vibrate) {
+    navigator.vibrate(pattern as any);
+  }
+};
